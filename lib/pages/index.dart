@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_fetch_data/theme/color.dart';
 import 'package:http/http.dart' as Http;
 import 'dart:convert';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class IndexPage extends StatefulWidget {
   @override
@@ -59,8 +60,8 @@ class _IndexPageState extends State<IndexPage> {
             title: Row(
               children: <Widget>[
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 60,
+                  height: 60,
                   decoration: BoxDecoration(
                     color: primary,
                     borderRadius: BorderRadius.circular(30),
@@ -70,8 +71,8 @@ class _IndexPageState extends State<IndexPage> {
                   ),
                 ),
                 SizedBox(
-                  width: 20,
-                  height: 60,
+                  width: 50,
+                  height: 100,
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,9 +94,15 @@ class _IndexPageState extends State<IndexPage> {
                       ),
                     ),
                   ],
-                )
+                ),
               ],
             ),
+            onTap: () => Fluttertoast.showToast(
+                msg: item['first_name'] + " " + item['last_name'],
+                gravity: ToastGravity.BOTTOM,
+                backgroundColor: Colors.red,
+                textColor: Colors.white,
+                fontSize: 16.0),
           ),
         ),
       );
