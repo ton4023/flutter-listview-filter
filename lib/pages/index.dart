@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_fetch_data/theme/color.dart';
-import 'package:http/http.dart' as Http;
-import 'dart:convert';
-import 'package:fluttertoast/fluttertoast.dart';
+
+import '../services/data.dart';
+import '../models/user.dart';
 
 class IndexPage extends StatefulWidget {
   @override
@@ -10,26 +9,12 @@ class IndexPage extends StatefulWidget {
 }
 
 class _IndexPageState extends State<IndexPage> {
-  List users = [];
-  bool isLoading = false;
+  Future<List<User>> futureUser;
 
   @override
   initState() {
     super.initState();
-    this.fetchUser();
-  }
-
-  fetchUser() async {
-    isLoading = true;
-    var url = 'https://reqres.in/api/users';
-    var res = await Http.get(url);
-    if (res.statusCode == 200) {
-      var items = jsonDecode(res.body)['data'];
-      setState(() {
-        users = items;
-        isLoading = false;
-      });
-    }
+    futureUser = fetchUser();
   }
 
   @override
@@ -38,22 +23,35 @@ class _IndexPageState extends State<IndexPage> {
       appBar: AppBar(
         title: Text('Listing Users'),
       ),
-      body: Center(
-        child: Container(
-          child: getBody(),
-        ),
-      ),
+      body: FutureBuilder<List<User>>(
+          future: futureUser,
+          builder: (BuildContext context, AsyncSnapshot<List<User>> snapshot) {
+            var userList = snapshot.data;
+            switch (snapshot.connectionState) {
+              case ConnectionState.waiting:
+                return Center(child: CircularProgressIndicator());
+              default:
+                if (snapshot.hasError)
+                  return Text('Error: ${snapshot.error}');
+                else
+                  return Container(
+                    child: ListView.builder(
+                      itemCount: userList.length,
+                      itemBuilder: (context, index) {
+                        var name = userList[index].firstName;
+                        var last = userList[index].lastName;
+                        var email = userList[index].email;
+                        var avatar = userList[index].avatar;
+                        return card(name, last, email, avatar);
+                      },
+                    ),
+                  );
+            }
+          }),
     );
   }
 
-  Widget getBody() => (users.contains(null) || isLoading)
-      ? CircularProgressIndicator()
-      : ListView.builder(
-          itemCount: users.length,
-          itemBuilder: (context, index) => getCard(users[index]),
-        );
-
-  Widget getCard(item) => Padding(
+  Widget card(name, last, email, avatar) => Padding(
         padding: const EdgeInsets.all(10),
         child: Card(
           child: ListTile(
@@ -63,10 +61,9 @@ class _IndexPageState extends State<IndexPage> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: primary,
                     borderRadius: BorderRadius.circular(30),
                     image: DecorationImage(
-                      image: NetworkImage(item['avatar'].toString()),
+                      image: NetworkImage(avatar),
                     ),
                   ),
                 ),
@@ -78,16 +75,14 @@ class _IndexPageState extends State<IndexPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      item['first_name'].toString() +
-                          " " +
-                          item['last_name'].toString(),
+                      (name + " " + last),
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
                         fontSize: 16,
                       ),
                     ),
                     Text(
-                      item['email'].toString(),
+                      email,
                       style: TextStyle(
                         fontWeight: FontWeight.w300,
                         fontSize: 14,
@@ -97,12 +92,6 @@ class _IndexPageState extends State<IndexPage> {
                 ),
               ],
             ),
-            onTap: () => Fluttertoast.showToast(
-                msg: item['first_name'] + " " + item['last_name'],
-                gravity: ToastGravity.BOTTOM,
-                backgroundColor: Colors.red,
-                textColor: Colors.white,
-                fontSize: 16.0),
           ),
         ),
       );
