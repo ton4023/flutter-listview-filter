@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../services/data.dart';
+import '../services/user.dart';
 import '../models/user.dart';
 
 class IndexPage extends StatefulWidget {
