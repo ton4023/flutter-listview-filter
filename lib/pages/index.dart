@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_fetch_data/services/user.dart';
 
 import '../services/user.dart';
 import '../models/user.dart';
@@ -9,12 +10,13 @@ class IndexPage extends StatefulWidget {
 }
 
 class _IndexPageState extends State<IndexPage> {
-  Future<List<User>> futureUser;
+  List<User> users = List<User>();
+  List<User> filteredUsers = List<User>();
 
   @override
-  initState() {
+  void initState() {
+    Services.getUsers().then((res) => setState(() => {users = res}));
     super.initState();
-    futureUser = fetchUser();
   }
 
   @override
@@ -23,76 +25,104 @@ class _IndexPageState extends State<IndexPage> {
       appBar: AppBar(
         title: Text('Listing Users'),
       ),
-      body: FutureBuilder<List<User>>(
-          future: futureUser,
-          builder: (BuildContext context, AsyncSnapshot<List<User>> snapshot) {
-            var userList = snapshot.data;
-            switch (snapshot.connectionState) {
-              case ConnectionState.waiting:
-                return Center(child: CircularProgressIndicator());
-              default:
-                if (snapshot.hasError)
-                  return Text('Error: ${snapshot.error}');
-                else
-                  return Container(
-                    child: ListView.builder(
-                      itemCount: userList.length,
-                      itemBuilder: (context, index) {
-                        var name = userList[index].firstName;
-                        var last = userList[index].lastName;
-                        var email = userList[index].email;
-                        var avatar = userList[index].avatar;
-                        return card(name, last, email, avatar);
-                      },
-                    ),
-                  );
-            }
-          }),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: buildTextField(),
+        ),
+        Expanded(
+          child:
+              filteredUsers.length != 0 ? buildSearchView() : buildListView(),
+        )
+      ]),
     );
   }
 
-  Widget card(name, last, email, avatar) => Padding(
-        padding: const EdgeInsets.all(10),
-        child: Card(
-          child: ListTile(
-            title: Row(
+  TextField buildTextField() {
+    return TextField(
+      decoration: InputDecoration(
+          icon: Icon(Icons.search), hintText: 'Filter by name or email'),
+      onChanged: (value) {
+        setState(() {
+          filteredUsers = users
+              .where((item) =>
+                  (item.firstName.toLowerCase().contains(value.toLowerCase()) ||
+                      item.email.toLowerCase().contains(value.toLowerCase())))
+              .toList();
+        });
+      },
+    );
+  }
+
+  ListView buildListView() {
+    return ListView.builder(
+      itemCount: users.length,
+      itemBuilder: (BuildContext context, int index) {
+        return buildCard(users, index);
+      },
+    );
+  }
+
+  ListView buildSearchView() {
+    return ListView.builder(
+      itemCount: filteredUsers.length,
+      itemBuilder: (BuildContext context, int index) {
+        return buildCard(filteredUsers, index);
+      },
+    );
+  }
+
+  Card buildCard(List<User> user, int index) {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(10.0),
+        child: Row(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(30),
+                image: DecorationImage(
+                  image: NetworkImage(avatar(user, index)),
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 20,
+              height: 50,
+            ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                Container(
-                  width: 60,
-                  height: 60,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(30),
-                    image: DecorationImage(
-                      image: NetworkImage(avatar),
-                    ),
+                Text(
+                  firstname(user, index) + " " + lastname(user, index),
+                  style: TextStyle(
+                    fontSize: 16.0,
+                    color: Colors.black,
                   ),
                 ),
                 SizedBox(
-                  width: 50,
-                  height: 100,
+                  height: 5.0,
                 ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      (name + " " + last),
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 16,
-                      ),
-                    ),
-                    Text(
-                      email,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w300,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                Text(
+                  email(user, index),
+                  style: TextStyle(
+                    fontSize: 14.0,
+                    color: Colors.grey,
+                  ),
                 ),
               ],
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    );
+  }
+
+  firstname(user, index) => user[index].firstName;
+  lastname(user, index) => user[index].lastName;
+  email(user, index) => user[index].email;
+  avatar(user, index) => user[index].avatar;
 }
